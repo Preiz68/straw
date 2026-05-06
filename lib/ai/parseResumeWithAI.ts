@@ -27,7 +27,7 @@ export type ParsedResume = z.infer<typeof ParsedResumeSchema>;
 
 export async function parseResumeWithAI(text: string): Promise<ParsedResume> {
   const prompt = buildResumePrompt(text);
-  const maxRetries = 3;
+  const maxRetries = 5;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
@@ -40,8 +40,8 @@ export async function parseResumeWithAI(text: string): Promise<ParsedResume> {
             Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
           },
           body: JSON.stringify({
-            model: "llama-3.3-70b-versatile",
-            temperature: attempt === 0 ? 0.1 : 0.25,
+            model: "llama-3.1-8b-instant",
+            temperature: attempt === 0 ? 0.1 : 0.2,
             max_tokens: 1800,
             response_format: { type: "json_object" },
             messages: [
@@ -57,7 +57,12 @@ export async function parseResumeWithAI(text: string): Promise<ParsedResume> {
       );
 
       if (res.status === 429) {
-        await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
+        if (attempt === maxRetries) {
+          throw new Error("Groq API rate limit exceeded during resume parsing. Please try again in a few moments.");
+        }
+        const waitTime = 2000 * (attempt + 1);
+        console.log(`⏳ Rate limit hit on parseResumeWithAI. Waiting ${waitTime}ms...`);
+        await new Promise((r) => setTimeout(r, waitTime));
         continue;
       }
 
@@ -70,20 +75,20 @@ export async function parseResumeWithAI(text: string): Promise<ParsedResume> {
 
       const parsed = safeParse(content);
       if (!parsed) {
-        throw new Error("Failed to extract valid JSON from Groq");
+        throw new Error("Failed to extract valid JSON from Groq response");
       }
 
       return ParsedResumeSchema.parse(parsed);
     } catch (error) {
       if (attempt === maxRetries) {
-        console.error("Resume parsing failed after retries:", error);
+        console.error("Resume parsing failed after all retries:", error);
         throw error;
       }
       await new Promise((r) => setTimeout(r, 1500));
     }
   }
 
-  throw new Error("Unexpected end of parseResumeWithAI");
+  throw new Error("Resume parsing failed: Maximum retries reached.");
 }
 
 function buildResumePrompt(text: string) {

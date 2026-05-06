@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const ProjectSummarySchema = z.object({
-  name: z.string(),
+  name: z.string().transform((val) => val.replace(/-/g, " ").toUpperCase()),
   description: z.string().min(10),
   techStack: z.array(z.string()),
   keyFeatures: z.array(z.string()),

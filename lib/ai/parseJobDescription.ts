@@ -2,7 +2,7 @@ import { ParsedJDSchema } from "@/types/job";
 
 export async function parseJobDescription(jdText: string) {
   const prompt = buildPrompt(jdText);
-  const maxRetries = 3;
+  const maxRetries = 5;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
@@ -15,8 +15,8 @@ export async function parseJobDescription(jdText: string) {
             Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
           },
           body: JSON.stringify({
-            model: "llama-3.3-70b-versatile",
-            temperature: attempt === 0 ? 0.1 : 0.25,
+            model: "llama-3.1-8b-instant",
+            temperature: attempt === 0 ? 0.1 : 0.2,
             max_tokens: 1200,
             response_format: { type: "json_object" },
             messages: [
@@ -32,7 +32,12 @@ export async function parseJobDescription(jdText: string) {
       );
 
       if (res.status === 429) {
-        await new Promise((r) => setTimeout(r, 1800 * (attempt + 1)));
+        if (attempt === maxRetries) {
+          throw new Error("Groq API rate limit exceeded. Please try again in a few moments.");
+        }
+        const waitTime = 1800 * (attempt + 1);
+        console.log(`⏳ Rate limit hit on parseJobDescription. Waiting ${waitTime}ms...`);
+        await new Promise((r) => setTimeout(r, waitTime));
         continue;
       }
 
@@ -45,20 +50,20 @@ export async function parseJobDescription(jdText: string) {
 
       const parsed = safeParse(text);
       if (!parsed) {
-        throw new Error("Failed to extract valid JSON");
+        throw new Error("Failed to extract valid JSON from Groq response");
       }
 
       return ParsedJDSchema.parse(parsed);
     } catch (error) {
       if (attempt === maxRetries) {
-        console.error("JD Parsing failed after retries:", error);
+        console.error("JD Parsing failed after all retries:", error);
         throw error;
       }
-      await new Promise((r) => setTimeout(r, 1200));
+      await new Promise((r) => setTimeout(r, 1500));
     }
   }
 
-  throw new Error("Unexpected end of parseJobDescription");
+  throw new Error("JD Parsing failed: Maximum retries reached without a successful response.");
 }
 function buildPrompt(jdText: string) {
   return `You are an expert technical recruiter and hiring manager.
