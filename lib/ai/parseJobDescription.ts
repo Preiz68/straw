@@ -33,10 +33,14 @@ export async function parseJobDescription(jdText: string) {
 
       if (res.status === 429) {
         if (attempt === maxRetries) {
-          throw new Error("Groq API rate limit exceeded. Please try again in a few moments.");
+          throw new Error(
+            "Groq API rate limit exceeded. Please try again in a few moments.",
+          );
         }
         const waitTime = 1800 * (attempt + 1);
-        console.log(`⏳ Rate limit hit on parseJobDescription. Waiting ${waitTime}ms...`);
+        console.log(
+          `⏳ Rate limit hit on parseJobDescription. Waiting ${waitTime}ms...`,
+        );
         await new Promise((r) => setTimeout(r, waitTime));
         continue;
       }
@@ -52,7 +56,7 @@ export async function parseJobDescription(jdText: string) {
       if (!parsed) {
         throw new Error("Failed to extract valid JSON from Groq response");
       }
-
+      console.log(parsed);
       return ParsedJDSchema.parse(parsed);
     } catch (error) {
       if (attempt === maxRetries) {
@@ -63,7 +67,9 @@ export async function parseJobDescription(jdText: string) {
     }
   }
 
-  throw new Error("JD Parsing failed: Maximum retries reached without a successful response.");
+  throw new Error(
+    "JD Parsing failed: Maximum retries reached without a successful response.",
+  );
 }
 function buildPrompt(jdText: string) {
   return `You are an expert technical recruiter and hiring manager.
@@ -76,8 +82,8 @@ Extract structured information from the job description below. Be precise and co
   "role": "string",
   "company": "string",
   "location": "string",
-  "type": "Full-time" | "Contract" | "Remote" | "Hybrid" | "On-site",
-  "experienceLevel": "Junior" | "Mid" | "Senior" | "Staff" | "Principal",
+  "type": "Full-time" | "Contract" | "Remote" | "Hybrid" | "On-site", NEVER INTERNSHIP
+  "experienceLevel": "Junior" | "Mid" | "Senior" | "Staff" | "Principal" | "Internship",
   "description": "string",
   "keyRequirements": ["string"],
   "techStack": ["string"],
@@ -92,8 +98,8 @@ Extract structured information from the job description below. Be precise and co
 - "role": Use the main job title (e.g. "Software Engineer")
 - "company": Extract company name if mentioned, otherwise "Not specified"
 - "location": Extract location / remote info
-- "type": Choose the best match from the enum
-- "experienceLevel": Infer from context (Seniority)
+- "type": Choose the best match from the enum **NEVER INTERNSHIP**
+- "experienceLevel": Infer from context (Seniority) 
 - "techStack": List all technologies mentioned (e.g. React, Python, Node.js, AWS, etc.)
 - "keyRequirements": Must-have skills and qualifications
 - "responsibilities": Extract all responsibilities clearly

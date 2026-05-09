@@ -9,20 +9,14 @@ export type StoredProject = {
 };
 
 export async function fetchProjectSummaries(
-  username: string,
+  userId: string,
 ): Promise<StoredProject[]> {
   const snapshot = await adminDb
     .collection("projectSummaries")
-    .where("repoId", ">=", username.toLowerCase())
+    .where("userId", "==", userId)
     .get();
 
-  // Fallback: fetch all if username filter returns nothing (no userId scoping yet)
-  const allSnapshot =
-    snapshot.empty
-      ? await adminDb.collection("projectSummaries").limit(20).get()
-      : snapshot;
-
-  return allSnapshot.docs.map((doc) => {
+  return snapshot.docs.map((doc) => {
     const data = doc.data();
     return {
       id: doc.id,
@@ -32,9 +26,10 @@ export async function fetchProjectSummaries(
   });
 }
 
-export async function fetchAllProjectSummaries(): Promise<StoredProject[]> {
+export async function fetchAllProjectSummaries(userId: string): Promise<StoredProject[]> {
   const snapshot = await adminDb
     .collection("projectSummaries")
+    .where("userId", "==", userId)
     .limit(20)
     .get();
 

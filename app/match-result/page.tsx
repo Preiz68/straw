@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/app/context/AuthContext";
 import type { MatchResult } from "@/types/match";
 
 type ProjectSummaryLite = {
@@ -14,6 +15,7 @@ type ProjectSummaryLite = {
 
 export default function MatchResultPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [result, setResult] = useState<MatchResult | null>(null);
   const [role, setRole] = useState("");
   const [rank, setRank] = useState("");
@@ -24,12 +26,14 @@ export default function MatchResultPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!user) return;
+
     const raw = localStorage.getItem("matchResult");
     const storedRole = localStorage.getItem("role") ?? "";
     const storedRank = localStorage.getItem("rank") ?? "";
 
     if (!raw) {
-      router.replace("/");
+      router.replace("/dashboard");
       return;
     }
 
@@ -39,14 +43,14 @@ export default function MatchResultPage() {
     setRank(storedRank);
 
     // Fetch the project summaries from Firestore to display details
-    fetch("/api/projects")
+    fetch(`/api/projects?userId=${user.uid}`)
       .then((r) => r.json())
       .then((projects: ProjectSummaryLite[]) => {
         setAllProjects(projects);
         const chosen = projects.filter((p) =>
-          parsed.selectedProjectIds.includes(p.id),
+          parsed.selectedProjectIds?.includes(p.id),
         );
-        setSelectedProjects(chosen);
+        setSelectedProjects(chosen || []);
       })
       .catch(() => {
         // Projects may not load; non-fatal
@@ -65,7 +69,7 @@ export default function MatchResultPage() {
     );
   }
 
-  const percentage = result.matchPercentage;
+  const percentage = result.matchPercentage || 0;
   const color =
     percentage >= 75
       ? {
@@ -178,17 +182,19 @@ export default function MatchResultPage() {
               <p className="text-slate-400 text-sm mb-3">
                 Project IDs selected by AI:
               </p>
-              {result.selectedProjectIds.map((id) => (
-                <div
-                  key={id}
-                  className="font-mono text-xs text-indigo-400 bg-indigo-950/40 border border-indigo-900/50 rounded-lg px-3 py-2"
-                >
-                  {id}
-                </div>
-              ))}
+              <div className="flex flex-wrap gap-2">
+                {result.selectedProjectIds?.map((id) => (
+                  <div
+                    key={id}
+                    className="font-mono text-xs text-indigo-400 bg-indigo-950/40 border border-indigo-900/50 rounded-lg px-3 py-2"
+                  >
+                    {id}
+                  </div>
+                )) || <p className="text-slate-500 text-xs italic">No projects selected.</p>}
+              </div>
               <p className="text-slate-600 text-xs mt-2">
                 (Full project details could not be loaded. Ensure projects have
-                been processed via the result page.)
+                been processed via the dashboard.)
               </p>
             </div>
           )}
@@ -229,12 +235,12 @@ function InfoCard({
     <div className="bg-slate-900/80 backdrop-blur border border-slate-800 rounded-2xl p-5 shadow-xl">
       <h3 className="text-white font-semibold text-sm mb-3">{title}</h3>
       <ul className="space-y-2">
-        {items.map((item, i) => (
+        {items?.map((item, i) => (
           <li key={i} className={`text-sm flex gap-2 ${itemClass}`}>
             <span className="opacity-50 mt-0.5">•</span>
             <span className="text-slate-300">{item}</span>
           </li>
-        ))}
+        )) || <li className="text-slate-500 text-xs italic">No items found.</li>}
       </ul>
     </div>
   );

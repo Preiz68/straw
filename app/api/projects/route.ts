@@ -1,8 +1,15 @@
 import { fetchAllProjectSummaries } from "@/lib/projects/fetchProjectSummaries";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const projects = await fetchAllProjectSummaries();
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get("userId");
+
+    if (!userId) {
+      return Response.json({ error: "Missing userId" }, { status: 400 });
+    }
+
+    const projects = await fetchAllProjectSummaries(userId);
 
     // Return a slimmed version for the UI
     const lite = projects.map((p) => ({

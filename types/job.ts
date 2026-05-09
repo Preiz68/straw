@@ -6,9 +6,9 @@ export const ParsedJDSchema = z.object({
   location: z.string().default("Not specified"),
   type: z
     .enum(["Full-time", "Contract", "Remote", "Hybrid", "On-site"])
-    .default("Full-time"),
+    .default("Remote"),
   experienceLevel: z
-    .enum(["Junior", "Mid", "Senior", "Staff", "Principal"])
+    .enum(["Junior", "Mid", "Senior", "Staff", "Principal", "Internship"])
     .default("Mid"),
   description: z.string().min(20),
   keyRequirements: z.array(z.string()).default([]),

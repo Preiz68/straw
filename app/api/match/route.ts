@@ -4,17 +4,17 @@ import { fetchAllProjectSummaries } from "@/lib/projects/fetchProjectSummaries";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { role, rank, resume, jd } = body;
+    const { role, rank, resume, jd, userId } = body;
 
-    if (!role || !rank || !resume || !jd) {
+    if (!role || !rank || !resume || !jd || !userId) {
       return Response.json(
-        { error: "Missing required fields: role, rank, resume, jd" },
+        { error: "Missing required fields: role, rank, resume, jd, userId" },
         { status: 400 },
       );
     }
 
     // Fetch all processed project summaries from Firestore
-    const projects = await fetchAllProjectSummaries();
+    const projects = await fetchAllProjectSummaries(userId);
 
     if (projects.length < 2) {
       return Response.json(

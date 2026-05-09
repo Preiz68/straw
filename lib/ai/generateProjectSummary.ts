@@ -25,7 +25,7 @@ export async function generateProjectSummary(
             Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
           },
           body: JSON.stringify({
-            model: "llama-3.1-8b-instant", // ← Fast and higher rate limits
+            model: "llama-3.3-70b-versatile", // ← Fast and higher rate limits
             messages: [
               {
                 role: "system",
@@ -47,7 +47,9 @@ export async function generateProjectSummary(
       // Handle Rate Limits (Important for 70B model)
       if (res.status === 429) {
         if (attempt === maxRetries) {
-          throw new Error("Groq API rate limit exceeded. Please try again later.");
+          throw new Error(
+            "Groq API rate limit exceeded. Please try again later.",
+          );
         }
         const errorData = await res.json().catch(() => ({}));
         const waitTime = errorData.error?.message?.match(/in (\d+\.\d+)s/)
@@ -92,7 +94,9 @@ export async function generateProjectSummary(
     }
   }
 
-  throw new Error("Project summary generation failed: Maximum retries reached.");
+  throw new Error(
+    "Project summary generation failed: Maximum retries reached.",
+  );
 }
 
 // Keep your existing safeParse and buildPrompt functions
